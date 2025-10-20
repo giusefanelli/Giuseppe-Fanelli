@@ -1,0 +1,5 @@
+{
+  "name": "IArnold Generatore schede palestra AI",
+  "description": "Un'applicazione web per generare schede di allenamento personalizzate per la palestra utilizzando l'intelligenza artificiale di Gemini. Inserisci i tuoi dati, i tuoi obiettivi e i gruppi muscolari che vuoi allenare per ricevere un piano su misura.",
+  "requestFramePermissions": []
+}
