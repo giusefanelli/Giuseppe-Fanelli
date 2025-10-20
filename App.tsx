@@ -7,6 +7,7 @@ import WorkoutForm from './components/WorkoutForm';
 import WorkoutPlan from './components/WorkoutPlan';
 import Loader from './components/Loader';
 import Footer from './components/Footer';
+import InstallPWA from './components/InstallPWA';
 
 function App() {
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlanType | null>(null);
@@ -65,6 +66,7 @@ function App() {
         <Header />
         <main className="flex-grow container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-4xl mx-auto">
+            <InstallPWA />
             {renderContent()}
           </div>
         </main>

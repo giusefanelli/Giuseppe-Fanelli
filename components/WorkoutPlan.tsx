@@ -77,7 +77,7 @@ const WorkoutPlan: React.FC<Props> = ({ plan, onReset }) => {
             <div key={index} className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
               <h3 className="text-2xl font-bold text-white mb-4">{dayPlan.day} - <span className="text-cyan-400">{dayPlan.focus}</span></h3>
               <div className="overflow-x-auto">
-                <table className="w-full text-left">
+                <table className="w-full text-left text-sm md:text-base">
                   <thead className="text-xs text-slate-200 uppercase bg-slate-800/50">
                     <tr>
                       <th scope="col" className="px-4 py-3">Esercizio</th>
