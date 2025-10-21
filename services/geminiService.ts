@@ -1,7 +1,18 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { UserData, WorkoutPlanType } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// A factory function to get the AI client.
+// This prevents the app from crashing on module load if the API key is missing.
+// The UI in App.tsx will show a prompt instead of allowing this function to be called.
+const getAiClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    // This should ideally not be reached because of the UI check.
+    throw new Error("La chiave API di Google Gemini non è configurata. Imposta la variabile d'ambiente API_KEY.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 const responseSchema = {
   type: Type.OBJECT,
@@ -124,6 +135,7 @@ export const generateWorkoutPlan = async (userData: UserData): Promise<WorkoutPl
   `;
 
   try {
+    const ai = getAiClient();
     const parts: any[] = [{ text: prompt }];
 
     if (previousPlan && previousPlan.type === 'image') {

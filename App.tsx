@@ -8,11 +8,14 @@ import WorkoutPlan from './components/WorkoutPlan';
 import Loader from './components/Loader';
 import Footer from './components/Footer';
 import InstallPWA from './components/InstallPWA';
+import ApiKeyPrompt from './components/ApiKeyPrompt';
+import ShareModal from './components/ShareModal';
 
 function App() {
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlanType | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const handleGeneratePlan = useCallback(async (userData: UserData) => {
     setIsLoading(true);
@@ -37,6 +40,12 @@ function App() {
   };
 
   const renderContent = () => {
+    // Check for API Key at the top level.
+    const isApiKeyMissing = !process.env.API_KEY;
+    // If API key is missing, show a dedicated prompt.
+    if (isApiKeyMissing) {
+      return <ApiKeyPrompt />;
+    }
     if (isLoading) {
       return <Loader />;
     }
@@ -70,8 +79,9 @@ function App() {
             {renderContent()}
           </div>
         </main>
-        <Footer />
+        <Footer onShareClick={() => setIsShareModalOpen(true)} />
       </div>
+      <ShareModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} />
     </div>
   );
 }

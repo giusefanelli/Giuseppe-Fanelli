@@ -106,7 +106,8 @@ const WorkoutPlan: React.FC<Props> = ({ plan, onReset }) => {
         </div>
       </div>
       
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 no-print">
+      {/* FIX: Replaced non-standard 'no-print' class with Tailwind's 'print:hidden' utility class. */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 print:hidden">
         <button
           onClick={onReset}
           className="w-full sm:w-auto px-6 py-3 bg-slate-600 text-white font-semibold rounded-lg hover:bg-slate-700 transition-colors"
