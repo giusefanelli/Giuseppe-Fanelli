@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IArnold - Generatore Schede Palestra AI</title>
+    <title>IArnold - Il tuo Personal Trainer AI</title>
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
@@ -14,6 +14,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       @media print {
+        body {
+          background: white !important;
+        }
         body * {
           visibility: hidden;
         }
@@ -25,9 +28,29 @@
           left: 0;
           top: 0;
           width: 100%;
+          color: black; /* Set base text color for printing */
         }
-        .no-print {
-          display: none;
+        /* Override dark mode colors for printing */
+        #printable-area div,
+        #printable-area p,
+        #printable-area span,
+        #printable-area h1,
+        #printable-area h3,
+        #printable-area td,
+        #printable-area th,
+        #printable-area li,
+        #printable-area ul {
+          color: black !important;
+          background-color: transparent !important;
+          border-color: #ccc !important;
+        }
+        #printable-area .text-cyan-400 {
+          color: #0891b2 !important; /* A darker, printable cyan */
+        }
+        #printable-area thead {
+          background-color: #f3f4f6 !important;
+          -webkit-print-color-adjust: exact; /* Ensure background color prints */
+          print-color-adjust: exact;
         }
       }
       @keyframes fade-in {

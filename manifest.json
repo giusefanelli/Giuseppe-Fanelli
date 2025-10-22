@@ -1,6 +1,6 @@
 {
   "short_name": "IArnold",
-  "name": "IArnold - Generatore Schede AI",
+  "name": "IArnold - Personal Trainer AI",
   "icons": [
     {
       "src": "/icon-192.svg",
@@ -17,5 +17,5 @@
   "display": "standalone",
   "theme_color": "#0f172a",
   "background_color": "#0f172a",
-  "description": "Generatore di schede di allenamento AI personalizzate."
+  "description": "Il tuo personal trainer e diario di allenamento AI."
 }

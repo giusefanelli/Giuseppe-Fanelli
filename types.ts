@@ -12,6 +12,7 @@ export interface UserData {
   trainingType: 'monofrequenza' | 'multifrequenza';
   focusMuscleGroups: string[];
   recommendedSplit?: string;
+  customSplitDescription?: string;
   previousPlan?: {
     content: string; // base64 for image, raw text for txt
     type: 'image' | 'text';
@@ -51,3 +52,28 @@ export interface BeforeInstallPromptEvent extends Event {
   }>;
   prompt(): Promise<void>;
 }
+
+export interface TrackedData {
+  [dayIndex: string]: {
+    [exerciseIndex: string]: {
+      weight: string;
+      notes: string;
+    };
+  };
+}
+
+
+export interface HistoryEntry {
+  id: string;
+  createdAt: string;
+  userData: UserData;
+  plan: WorkoutPlanType;
+  trackedData?: TrackedData;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+}
+
+export type View = 'login' | 'form' | 'plan' | 'history' | 'loading' | 'error' | 'progress';

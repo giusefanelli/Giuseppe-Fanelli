@@ -14,7 +14,9 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
-      setAppUrl(window.location.href);
+      // Create a clean, shareable URL by removing query parameters and hash.
+      const cleanUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
+      setAppUrl(cleanUrl);
       setCopied(false);
     }
   }, [isOpen]);
@@ -23,7 +25,10 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose }) => {
     return null;
   }
 
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(appUrl)}&color=22d3ee&bgcolor=0f172a&qzone=1`;
+  // Use Google's Chart API for QR code generation for better reliability within the ecosystem.
+  const qrCodeUrl = appUrl
+    ? `https://chart.googleapis.com/chart?cht=qr&chs=256x256&chl=${encodeURIComponent(appUrl)}`
+    : '';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(appUrl).then(() => {
@@ -47,8 +52,14 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose }) => {
         <h2 id="share-modal-title" className="text-2xl font-bold text-cyan-400 mb-4">Condividi IArnold</h2>
         <p className="text-slate-300 mb-6">Inquadra il QR code o copia il link per condividere l'app.</p>
         
-        <div className="bg-slate-900 p-4 rounded-lg inline-block border border-slate-700">
-          <img src={qrCodeUrl} alt="QR Code per condividere l'app" width="256" height="256" />
+        <div className="bg-white p-4 rounded-lg inline-block">
+          {qrCodeUrl ? (
+            <img src={qrCodeUrl} alt="QR Code per condividere l'app" width="256" height="256" />
+          ) : (
+            <div className="w-64 h-64 bg-slate-700 rounded-lg flex items-center justify-center">
+              <p className="text-slate-400">Generazione QR Code...</p>
+            </div>
+          )}
         </div>
 
         <div className="mt-6">

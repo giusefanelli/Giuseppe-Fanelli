@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, FunctionDeclaration, GenerateContentResponse } from "@google/genai";
 import { UserData, WorkoutPlanType } from '../types';
 
 // A factory function to get the AI client.
@@ -64,7 +64,7 @@ const responseSchema = {
 };
 
 export const generateWorkoutPlan = async (userData: UserData): Promise<WorkoutPlanType> => {
-  const { name, gender, age, height, weight, trainingDays, goal, experience, focusMuscleGroups, trainingType, recommendedSplit, equipment, previousPlan } = userData;
+  const { name, gender, age, height, weight, trainingDays, goal, experience, focusMuscleGroups, trainingType, recommendedSplit, equipment, previousPlan, customSplitDescription } = userData;
 
   const goalMap = {
     hypertrophy: 'ipertrofia muscolare',
@@ -86,16 +86,21 @@ export const generateWorkoutPlan = async (userData: UserData): Promise<WorkoutPl
 
   const focusMuscles = focusMuscleGroups.length > 0 ? `con un focus particolare sui seguenti gruppi muscolari: ${focusMuscleGroups.join(', ')}.` : 'in modo bilanciato su tutto il corpo.';
 
-  const splitPreference = (recommendedSplit && recommendedSplit !== 'Lascia decidere all\'IA')
-    ? `L'utente ha espresso una preferenza per una struttura di allenamento ${recommendedSplit}. Se possibile, basa la scheda su questo split, adattandolo al numero di giorni di allenamento. Se non è adatto, scegli la migliore alternativa motivando la scelta.`
-    : 'L\'utente non ha specificato uno split preferito, quindi scegli la struttura di allenamento (Push/Pull/Legs, Upper/Lower, Full Body, ecc.) che ritieni più ottimale in base ai suoi dati.';
+  let splitPreference = '';
+  if (recommendedSplit === 'Chiedi a IArnold' && customSplitDescription) {
+    splitPreference = `L'utente ha fornito una descrizione personalizzata della scheda che desidera. Basati su questa descrizione per creare la struttura e la selezione degli esercizi. Descrizione dell'utente: "${customSplitDescription}".`;
+  } else if (recommendedSplit && recommendedSplit !== 'Lascia decidere all\'IA' && recommendedSplit !== 'Chiedi a IArnold') {
+    splitPreference = `L'utente ha espresso una preferenza per una struttura di allenamento ${recommendedSplit}. Se possibile, basa la scheda su questo split, adattandolo al numero di giorni di allenamento. Se non è adatto, scegli la migliore alternativa motivando la scelta.`;
+  } else {
+    splitPreference = 'L\'utente non ha specificato uno split preferito, quindi scegli la struttura di allenamento (Push/Pull/Legs, Upper/Lower, Full Body, ecc.) che ritieni più ottimale in base ai suoi dati.';
+  }
 
   let previousPlanContext = '';
   if (previousPlan) {
     if (previousPlan.type === 'text') {
         previousPlanContext = `L'utente ha allegato la sua scheda precedente in formato testo per darti contesto. Analizzala attentamente per capire la struttura, gli esercizi e i volumi. Il tuo compito è creare una NUOVA scheda che sia una progressione logica o una valida alternativa a quella fornita. Non copiare la vecchia scheda, ma usala come ispirazione per la progressione. Ecco il contenuto della vecchia scheda:\n\n---\n${previousPlan.content}\n---`;
     } else { // image
-        previousPlanContext = `IMPORTANTISSIMO: L'utente ha allegato un'IMMAGINE della sua scheda precedente. Analizzala attentamente per capire la struttura, gli esercizi e i volumi. Il tuo compito è creare una NUOVA scheda che sia una progressione logica o una valida alternativa a quella fornita, mantenendo tutti i principi richiesti. Non copiare la vecchia scheda, ma usala come base per creare la progressione.`;
+        previousPlanContext = `IMPORTANTISSIMO: L'utente ha allegato un'IMMAGINE della sua scheda precedente. Analizzala attentamente per capire la struttura, gli esercizi e i volumi. Il tuo compito è creare una NUOVA scheda che sia una progressione logica o una valida alternativa a quella fornita, mantenendo tutti i principi richiesti. Non copiare la vecchia scheda, ma usala come base per creare la progressionzione.`;
     }
   }
 
@@ -164,4 +169,116 @@ export const generateWorkoutPlan = async (userData: UserData): Promise<WorkoutPl
     console.error("Errore durante la chiamata all'API Gemini:", error);
     throw new Error("Impossibile generare la scheda di allenamento. Riprova più tardi.");
   }
+};
+
+const searchYoutubeTool: FunctionDeclaration = {
+  name: "searchYoutube",
+  description: "Cerca un video su YouTube e restituisce l'URL dei risultati di ricerca.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      query: {
+        type: Type.STRING,
+        description: "I termini da cercare, ad esempio il nome di un esercizio di allenamento.",
+      },
+    },
+    required: ["query"],
+  },
+};
+
+export async function askAboutWorkoutPlan(
+  plan: WorkoutPlanType,
+  question: string
+): Promise<string> {
+  try {
+    const ai = getAiClient();
+
+    const planContext = JSON.stringify(plan, null, 2);
+
+    const prompt = `
+      Sei "IArnold", il personal trainer AI che ha creato la scheda di allenamento fornita.
+      Il tuo compito è rispondere alle domande dell'utente relative ESCLUSIVAMENTE alla scheda fornita e a concetti generali di allenamento.
+      Se l'utente ti chiede di mostrargli un video o come si fa un esercizio, USA lo strumento 'searchYoutube' per fornirgli un link.
+      Sii conciso, utile e mantieni il tuo tono da esperto di fitness.
+
+      **CONTESTO (La scheda di allenamento che hai creato):**
+      \`\`\`json
+      ${planContext}
+      \`\`\`
+
+      **DOMANDA DELL'UTENTE:**
+      "${question}"
+
+      Rispondi alla domanda basandoti sulle informazioni della scheda e sulla tua conoscenza generale.
+    `;
+    
+    const response: GenerateContentResponse = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        tools: [{ functionDeclarations: [searchYoutubeTool] }],
+      },
+    });
+
+    if (response.functionCalls && response.functionCalls.length > 0) {
+      const functionCall = response.functionCalls[0];
+      if (functionCall.name === 'searchYoutube') {
+        const query = functionCall.args.query;
+        if (typeof query === 'string') {
+          const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+          // Return a user-friendly markdown link
+          return `Certo! Ecco un link per cercare tutorial su "${query}" su YouTube: [Guarda i video dell'esercizio](${url})`;
+        }
+      }
+    }
+    
+    // If no function call, or if it fails, return the text response
+    return response.text;
+
+  } catch (error) {
+    console.error("Errore durante la chat con l'API Gemini:", error);
+    return "Mi dispiace, si è verificato un errore e non posso rispondere in questo momento.";
+  }
+}
+
+const alternativesSchema = {
+    type: Type.ARRAY,
+    items: { type: Type.STRING }
+};
+
+export const getExerciseAlternatives = async (exerciseToReplace: string, muscleGroupFocus: string, equipment: 'gym' | 'homegym' | 'dumbbells_bands'): Promise<string[]> => {
+    const equipmentMap = {
+        gym: 'una palestra completamente attrezzata',
+        homegym: 'una home gym (con rack, panca, bilanciere e manubri)',
+        dumbbells_bands: 'solamente manubri di vario peso ed elastici di resistenza',
+    };
+
+    const prompt = `
+        Sei un esperto personal trainer AI. L'utente vuole sostituire l'esercizio "${exerciseToReplace}".
+        Il focus muscolare del giorno è: "${muscleGroupFocus}".
+        L'attrezzatura a disposizione è: "${equipmentMap[equipment]}".
+
+        Suggerisci 5 esercizi alternativi che allenino lo stesso gruppo muscolare target, compatibili con l'attrezzatura.
+        Non includere "${exerciseToReplace}" nella lista.
+        Fornisci l'output ESCLUSIVAMENTE in formato JSON, come un array di stringhe.
+    `;
+
+    try {
+        const ai = getAiClient();
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: alternativesSchema,
+            },
+        });
+        const jsonString = response.text.trim();
+        const alternatives = JSON.parse(jsonString) as string[];
+        return alternatives;
+    } catch (error) {
+        console.error("Errore nel generare alternative per l'esercizio:", error);
+        // Return a fallback list on error
+        return ["Non è stato possibile trovare alternative, riprova."];
+    }
 };
